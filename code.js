@@ -114,11 +114,11 @@ fs.writeFile("output.csv", csvContent, (err) => {
   }
 });
 
-const db = new sqlite3.Database("mydatabase.db", (err) => {
+const db = new sqlite3.Database("Mydatabase.db", (err) => {
   if (err) {
     console.error("Error opening database:", err.message);
   } else {
-    console.log("Database opened successfully.");
+    console.log("Database opened successfully."); 
   }
 });
 
@@ -154,7 +154,16 @@ db.run(
             record.Initials,
             record.Age,
             record.DateOfBirth,
-          ]
+          ],
+          function (err) {
+            if (err) {
+              console.error("Error inserting record:", err.message);
+            } else {
+              console.log(
+                `A new record has been inserted with Id: ${this.lastID}`
+              );
+            }
+          }
         );
       });
 
