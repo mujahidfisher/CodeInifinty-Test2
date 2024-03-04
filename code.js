@@ -1,5 +1,5 @@
 const fs = require("fs");
-// const sqlite3 = require("sqlite3");
+const sqlite3 = require("sqlite3");
 
 function generateRandomNamesAndSurnames(
   firstNameArray,
@@ -92,7 +92,7 @@ const lastNames = [
   "Taylor",
 ];
 
-const numRecordsToGenerate = 20;
+const numRecordsToGenerate = 400;
 
 const generatedRecords = generateRandomNamesAndSurnames(
   firstNames,
@@ -113,3 +113,58 @@ fs.writeFile("output.csv", csvContent, (err) => {
     console.log("CSV file created successfully!");
   }
 });
+
+const db = new sqlite3.Database("mydatabase.db", (err) => {
+  if (err) {
+    console.error("Error opening database:", err.message);
+  } else {
+    console.log("Database opened successfully.");
+  }
+});
+
+db.run(
+  `CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    Name TEXT,
+    Surname TEXT,
+    Initials TEXT,
+    Age INTEGER,
+    DateOfBirth TEXT
+  )`,
+  function (err) {
+    if (err) {
+      console.error("Error creating table:", err.message);
+    } else {
+      console.log("Table created successfully.");
+    }
+
+    db.run("DELETE FROM users", function (err) {
+      if (err) {
+        console.error("Error deleting records:", err.message);
+      } else {
+        console.log("Existing records deleted successfully.");
+      }
+
+      generatedRecords.forEach((record) => {
+        db.run(
+          `INSERT INTO users (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
+          [
+            record.Name,
+            record.Surname,
+            record.Initials,
+            record.Age,
+            record.DateOfBirth,
+          ]
+        );
+      });
+
+      db.close((err) => {
+        if (err) {
+          console.error("Error closing database:", err.message);
+        } else {
+          console.log("Database closed successfully.");
+        }
+      });
+    });
+  }
+);
