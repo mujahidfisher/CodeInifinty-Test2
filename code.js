@@ -132,7 +132,7 @@ const db = new sqlite3.Database("Mydatabase.db", (err) => {
 });
 
 db.run(
-  `CREATE TABLE IF NOT EXISTS users (
+  `CREATE TABLE IF NOT EXISTS csv_import (
     id INTEGER PRIMARY KEY,
     Name TEXT,
     Surname TEXT,
@@ -147,7 +147,7 @@ db.run(
       console.log("Table created successfully.");
     }
 
-    db.run("DELETE FROM users", function (err) {
+    db.run("DELETE FROM csv_import", function (err) {
       if (err) {
         console.error("Error deleting records:", err.message);
       } else {
@@ -156,7 +156,7 @@ db.run(
 
       generatedRecords.forEach((record) => {
         db.run(
-          `INSERT INTO users (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
           [
             record.Name,
             record.Surname,
