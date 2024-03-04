@@ -1,5 +1,6 @@
 const fs = require("fs");
 const sqlite3 = require("sqlite3");
+const path = require("path");
 
 function generateRandomNamesAndSurnames(
   firstNameArray,
@@ -22,7 +23,7 @@ function generateRandomNamesAndSurnames(
     const randomLastName =
       lastNameArray[Math.floor(Math.random() * lastNameArray.length)];
     const fullName = `${randomFirstName} ${randomLastName}`;
-    const initials = `${randomFirstName.charAt(0)}${randomLastName.charAt(0)}`;
+    const initials = `${randomFirstName.charAt(0)}`;
     const age = Math.floor(Math.random() * (80 - 5 + 1)) + 5;
     const birthYear = 2024 - age;
     const birthDate = new Date(
@@ -102,15 +103,23 @@ const generatedRecords = generateRandomNamesAndSurnames(
 
 console.log(generatedRecords);
 
+const outputFolderPath = "./output";
+
+if (!fs.existsSync(outputFolderPath)) {
+  fs.mkdirSync(outputFolderPath);
+}
+
 const csvContent = generatedRecords
   .map((record) => Object.values(record).join(","))
   .join("\n");
 
-fs.writeFile("output.csv", csvContent, (err) => {
+const outputPath = path.join(outputFolderPath, "output.csv");
+
+fs.writeFile(outputPath, csvContent, (err) => {
   if (err) {
     console.error("Error writing CSV file:", err);
   } else {
-    console.log("CSV file created successfully!");
+    console.log("CSV file created successfully at:", outputPath);
   }
 });
 
@@ -118,7 +127,7 @@ const db = new sqlite3.Database("Mydatabase.db", (err) => {
   if (err) {
     console.error("Error opening database:", err.message);
   } else {
-    console.log("Database opened successfully."); 
+    console.log("Database opened successfully.");
   }
 });
 
