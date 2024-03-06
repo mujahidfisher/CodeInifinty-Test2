@@ -1,6 +1,12 @@
+const readline = require("readline");
 const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const path = require("path");
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
 function generateRandomNamesAndSurnames(
   firstNameArray,
@@ -43,7 +49,6 @@ function generateRandomNamesAndSurnames(
       usedFullNames.add(fullName);
     }
   }
-
   return records;
 }
 
@@ -93,46 +98,55 @@ const lastNames = [
   "Taylor",
 ];
 
-const numRecordsToGenerate = 400;
+rl.question(
+  "Enter the number of records to generate: ",
+  (numRecordsToGenerate) => {
+    numRecordsToGenerate = parseInt(numRecordsToGenerate);
 
-const generatedRecords = generateRandomNamesAndSurnames(
-  firstNames,
-  lastNames,
-  numRecordsToGenerate
-);
+    if (isNaN(numRecordsToGenerate) || numRecordsToGenerate <= 0) {
+      console.log("Invalid input. Please enter a positive integer.");
+      rl.close();
+      return;
+    }
 
-console.log(generatedRecords);
+    const generatedRecords = generateRandomNamesAndSurnames(
+      firstNames,
+      lastNames,
+      numRecordsToGenerate
+    );
 
-const outputFolderPath = "./output";
+    console.log(generatedRecords);
 
-if (!fs.existsSync(outputFolderPath)) {
-  fs.mkdirSync(outputFolderPath);
-}
+    const outputFolderPath = "./output";
 
-const csvContent = generatedRecords
-  .map((record) => Object.values(record).join(","))
-  .join("\n");
+    if (!fs.existsSync(outputFolderPath)) {
+      fs.mkdirSync(outputFolderPath);
+    }
 
-const outputPath = path.join(outputFolderPath, "output.csv");
+    const csvContent = generatedRecords
+      .map((record) => Object.values(record).join(","))
+      .join("\n");
 
-fs.writeFile(outputPath, csvContent, (err) => {
-  if (err) {
-    console.error("Error writing CSV file:", err);
-  } else {
-    console.log("CSV file created successfully at:", outputPath);
-  }
-});
+    const outputPath = path.join(outputFolderPath, "output.csv");
 
-const db = new sqlite3.Database("Mydatabase.db", (err) => {
-  if (err) {
-    console.error("Error opening database:", err.message);
-  } else {
-    console.log("Database opened successfully.");
-  }
-});
+    fs.writeFile(outputPath, csvContent, (err) => {
+      if (err) {
+        console.error("Error writing CSV file:", err);
+      } else {
+        console.log("CSV file created successfully at:", outputPath);
+      }
+    });
 
-db.run(
-  `CREATE TABLE IF NOT EXISTS csv_import (
+    const db = new sqlite3.Database("Mydatabase.db", (err) => {
+      if (err) {
+        console.error("Error opening database:", err.message);
+      } else {
+        console.log("Database opened successfully.");
+      }
+    });
+
+    db.run(
+      `CREATE TABLE IF NOT EXISTS csv_import (
     id INTEGER PRIMARY KEY,
     Name TEXT,
     Surname TEXT,
@@ -140,49 +154,52 @@ db.run(
     Age INTEGER,
     DateOfBirth TEXT
   )`,
-  function (err) {
-    if (err) {
-      console.error("Error creating table:", err.message);
-    } else {
-      console.log("Table created successfully.");
-    }
-
-    db.run("DELETE FROM csv_import", function (err) {
-      if (err) {
-        console.error("Error deleting records:", err.message);
-      } else {
-        console.log("Existing records deleted successfully.");
-      }
-
-      generatedRecords.forEach((record) => {
-        db.run(
-          `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
-          [
-            record.Name,
-            record.Surname,
-            record.Initials,
-            record.Age,
-            record.DateOfBirth,
-          ],
-          function (err) {
-            if (err) {
-              console.error("Error inserting record:", err.message);
-            } else {
-              console.log(
-                `A new record has been inserted with Id: ${this.lastID}`
-              );
-            }
-          }
-        );
-      });
-
-      db.close((err) => {
+      function (err) {
         if (err) {
-          console.error("Error closing database:", err.message);
+          console.error("Error creating table:", err.message);
         } else {
-          console.log("Database closed successfully.");
+          console.log("Table created successfully.");
         }
-      });
-    });
+
+        db.run("DELETE FROM csv_import", function (err) {
+          if (err) {
+            console.error("Error deleting records:", err.message);
+          } else {
+            console.log("Existing records deleted successfully.");
+          }
+
+          generatedRecords.forEach((record) => {
+            db.run(
+              `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
+              [
+                record.Name,
+                record.Surname,
+                record.Initials,
+                record.Age,
+                record.DateOfBirth,
+              ],
+              function (err) {
+                if (err) {
+                  console.error("Error inserting record:", err.message);
+                } else {
+                  console.log(
+                    `A new record has been inserted with Id: ${this.lastID}`
+                  );
+                }
+              }
+            );
+          });
+
+          db.close((err) => {
+            if (err) {
+              console.error("Error closing database:", err.message);
+            } else {
+              console.log("Database closed successfully.");
+            }
+          });
+        });
+        rl.close();
+      }
+    );
   }
 );
