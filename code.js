@@ -14,7 +14,6 @@ function generateRandomNamesAndSurnames(
   numRecords
 ) {
   const records = [];
-  const usedFullNames = new Set();
 
   function formatDate(date) {
     const day = String(date.getDate()).padStart(2, "0");
@@ -28,7 +27,6 @@ function generateRandomNamesAndSurnames(
       firstNameArray[Math.floor(Math.random() * firstNameArray.length)];
     const randomLastName =
       lastNameArray[Math.floor(Math.random() * lastNameArray.length)];
-    const fullName = `${randomFirstName} ${randomLastName}`;
     const initials = `${randomFirstName.charAt(0)}`;
     const age = Math.floor(Math.random() * (80 - 5 + 1)) + 5;
     const birthYear = 2024 - age;
@@ -38,16 +36,13 @@ function generateRandomNamesAndSurnames(
       Math.floor(Math.random() * 28) + 1
     );
 
-    if (!usedFullNames.has(fullName)) {
-      records.push({
-        Name: randomFirstName,
-        Surname: randomLastName,
-        Initials: initials,
-        Age: age,
-        DateOfBirth: formatDate(birthDate),
-      });
-      usedFullNames.add(fullName);
-    }
+    records.push({
+      Name: randomFirstName,
+      Surname: randomLastName,
+      Initials: initials,
+      Age: age,
+      DateOfBirth: formatDate(birthDate),
+    });
   }
   return records;
 }
@@ -168,35 +163,36 @@ rl.question(
             console.log("Existing records deleted successfully.");
           }
 
-          generatedRecords.forEach((record) => {
-            db.run(
-              `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES (?, ?, ?, ?, ?)`,
-              [
-                record.Name,
-                record.Surname,
-                record.Initials,
-                record.Age,
-                record.DateOfBirth,
-              ],
-              function (err) {
-                if (err) {
-                  console.error("Error inserting record:", err.message);
-                } else {
-                  console.log(
-                    `A new record has been inserted with Id: ${this.lastID}`
-                  );
-                }
-              }
-            );
-          });
+          const placeholders = generatedRecords
+            .map(() => "(?, ?, ?, ?, ?)")
+            .join(", ");
+          const values = generatedRecords.flatMap((record) => [
+            record.Name,
+            record.Surname,
+            record.Initials,
+            record.Age,
+            record.DateOfBirth,
+          ]);
 
-          db.close((err) => {
-            if (err) {
-              console.error("Error closing database:", err.message);
-            } else {
-              console.log("Database closed successfully.");
+          db.run(
+            `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES ${placeholders}`,
+            values,
+            function (err) {
+              if (err) {
+                console.error("Error bulk inserting records:", err.message);
+              } else {
+                console.log(`${this.changes} records inserted successfully.`);
+              }
+
+              db.close((err) => {
+                if (err) {
+                  console.error("Error closing database:", err.message);
+                } else {
+                  console.log("Database closed successfully.");
+                }
+              });
             }
-          });
+          );
         });
         rl.close();
       }
