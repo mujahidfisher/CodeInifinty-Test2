@@ -8,11 +8,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-function generateRandomNamesAndSurnames(
-  firstNameArray,
-  lastNameArray,
-  numRecords
-) {
+function generateRandomNamesAndSurnames(firstNameArray, lastNameArray, numRecords) {
   const records = [];
 
   function formatDate(date) {
@@ -163,38 +159,41 @@ rl.question(
             console.log("Existing records deleted successfully.");
           }
 
-          const placeholders = generatedRecords
-            .map(() => "(?, ?, ?, ?, ?)")
-            .join(", ");
-          const values = generatedRecords.flatMap((record) => [
-            record.Name,
-            record.Surname,
-            record.Initials,
-            record.Age,
-            record.DateOfBirth,
-          ]);
+          const batchSize = 100; // Adjust the batch size as needed
+          for (let i = 0; i < generatedRecords.length; i += batchSize) {
+            const batch = generatedRecords.slice(i, i + batchSize);
+            const placeholders = batch.map(() => "(?, ?, ?, ?, ?)").join(", ");
+            const values = batch.flatMap((record) => [
+              record.Name,
+              record.Surname,
+              record.Initials,
+              record.Age,
+              record.DateOfBirth,
+            ]);
 
-          db.run(
-            `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES ${placeholders}`,
-            values,
-            function (err) {
-              if (err) {
-                console.error("Error bulk inserting records:", err.message);
-              } else {
-                console.log(`${this.changes} records inserted successfully.`);
-              }
-
-              db.close((err) => {
+            db.run(
+              `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES ${placeholders}`,
+              values,
+              function (err) {
                 if (err) {
-                  console.error("Error closing database:", err.message);
+                  console.error("Error bulk inserting records:", err.message);
                 } else {
-                  console.log("Database closed successfully.");
+                  console.log(`${this.changes} records inserted successfully.`);
                 }
-              });
+              }
+            );
+          }
+
+          db.close((err) => {
+            if (err) {
+              console.error("Error closing database:", err.message);
+            } else {
+              console.log("Database closed successfully.");
             }
-          );
+          });
+
+          rl.close();
         });
-        rl.close();
       }
     );
   }
