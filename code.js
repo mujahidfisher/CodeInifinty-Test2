@@ -1,23 +1,32 @@
+// node packages import
 const readline = require("readline");
 const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const path = require("path");
 
+//  interface for reading input
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-function generateRandomNamesAndSurnames(firstNameArray, lastNameArray, numRecords) {
+function generateRandomNamesAndSurnames(
+  // params
+  firstNameArray,
+  lastNameArray,
+  numRecords
+) {
+  // empty array
   const records = [];
 
+  // function too format date dd/mm/yyyy
   function formatDate(date) {
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   }
-
+  // this is the random generator loop
   while (records.length < numRecords) {
     const randomFirstName =
       firstNameArray[Math.floor(Math.random() * firstNameArray.length)];
@@ -32,6 +41,7 @@ function generateRandomNamesAndSurnames(firstNameArray, lastNameArray, numRecord
       Math.floor(Math.random() * 28) + 1
     );
 
+    // pushes all the data to the records array
     records.push({
       Name: randomFirstName,
       Surname: randomLastName,
@@ -43,6 +53,7 @@ function generateRandomNamesAndSurnames(firstNameArray, lastNameArray, numRecord
   return records;
 }
 
+// this is the array of names
 const firstNames = [
   "Mujahid",
   "Alonso",
@@ -66,6 +77,7 @@ const firstNames = [
   "Harper",
 ];
 
+// this is the array of surnames
 const lastNames = [
   "Fisher",
   "Cupido",
@@ -89,6 +101,7 @@ const lastNames = [
   "Taylor",
 ];
 
+// prompt to enter the number of records wanted too generate
 rl.question(
   "Enter the number of records to generate: ",
   (numRecordsToGenerate) => {
@@ -100,6 +113,7 @@ rl.question(
       return;
     }
 
+    // TEST
     const generatedRecords = generateRandomNamesAndSurnames(
       firstNames,
       lastNames,
@@ -108,12 +122,13 @@ rl.question(
 
     console.log(generatedRecords);
 
-    const outputFolderPath = "./output";
-
+    const outputFolderPath = "./output"; // path
+    // creates an output folder (if not existing)
     if (!fs.existsSync(outputFolderPath)) {
       fs.mkdirSync(outputFolderPath);
     }
 
+    // generates a CSV file and inserts the content into it
     const csvContent = generatedRecords
       .map((record) => Object.values(record).join(","))
       .join("\n");
@@ -128,6 +143,7 @@ rl.question(
       }
     });
 
+    // connection to an SQLite3 database
     const db = new sqlite3.Database("Mydatabase.db", (err) => {
       if (err) {
         console.error("Error opening database:", err.message);
@@ -136,6 +152,7 @@ rl.question(
       }
     });
 
+    // table creation (if not existing)
     db.run(
       `CREATE TABLE IF NOT EXISTS csv_import (
     id INTEGER PRIMARY KEY,
@@ -151,7 +168,7 @@ rl.question(
         } else {
           console.log("Table created successfully.");
         }
-
+        // delete query so that new data is added and old data is removed
         db.run("DELETE FROM csv_import", function (err) {
           if (err) {
             console.error("Error deleting records:", err.message);
@@ -159,7 +176,8 @@ rl.question(
             console.log("Existing records deleted successfully.");
           }
 
-          const batchSize = 100; // Adjust the batch size as needed
+          // batch insertion into a database
+          const batchSize = 100;
           for (let i = 0; i < generatedRecords.length; i += batchSize) {
             const batch = generatedRecords.slice(i, i + batchSize);
             const placeholders = batch.map(() => "(?, ?, ?, ?, ?)").join(", ");
@@ -171,6 +189,7 @@ rl.question(
               record.DateOfBirth,
             ]);
 
+            // data is inserted into the database
             db.run(
               `INSERT INTO csv_import (Name, Surname, Initials, Age, DateOfBirth) VALUES ${placeholders}`,
               values,
@@ -183,7 +202,7 @@ rl.question(
               }
             );
           }
-
+          // closing the database
           db.close((err) => {
             if (err) {
               console.error("Error closing database:", err.message);
